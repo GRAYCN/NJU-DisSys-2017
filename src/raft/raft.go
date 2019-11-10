@@ -35,21 +35,27 @@ import "labrpc"
 // committed, the peer should send an ApplyMsg to the service (or
 // tester) on the same server, via the applyCh passed to Make().
 //
+/*
+当每个筏节点意识到提交了连续的日志条目时，节点应该通过传递给Make()的applyCh向同一服务器上的服务(或测试人员)发送ApplyMsg。 ##
+*/
 type ApplyMsg struct {
 	Index       int
-	Command     interface{}
-	UseSnapshot bool   // ignore for lab2; only used in lab3
-	Snapshot    []byte // ignore for lab2; only used in lab3
+	Command     interface{} //## 这是啥
+	UseSnapshot bool        // ignore for lab2; only used in lab3
+	Snapshot    []byte      // ignore for lab2; only used in lab3
 }
 
 type LogEntry struct {
 	Index int //日志索引
-	Term  int //日志的任期号
+	Term  int //日志创建的任期号
 }
 
 //
 // A Go object implementing a single Raft peer.
 //
+/*
+实现Raft的一个Go对象
+*/
 type Raft struct {
 	mu        sync.Mutex
 	peers     []*labrpc.ClientEnd
@@ -62,27 +68,31 @@ type Raft struct {
 
 	state         string    //表示状态，分别有Follower,Candidate,Leader三种状态
 	voteCount     int       //得票数
-	chanHeartbeat chan bool //心跳机制，用来建立权限联系以及阻止其他选举的产生
+	chanHeartbeat chan bool //心跳机制，用来建立权限联系以及阻止其他选举的产生		// ## chan是啥
 	chanGrantVote chan bool //判断该服务器是否投过票
 	chanIsLeader  chan bool //判断是否成为了领导人
 
 	//persistent state on all servers:
-	currentTerm int        //服务器知道的最后一次任期号
+	currentTerm int        //服务器看到的最新任期(第一次启动时初始化为0，单调递增)。
 	votedFor    int        //投票给了哪个服务器，也就是peer中的位置
-	log         []LogEntry //日志信息
+	log         []LogEntry //日志的条目			## logEntry是什么
 
-	//volatile state on all server
+	//volatile state on all servers
 	commitIndex int //已知的最大的已经被提交的日志索引值
 	lastApplied int //最后别应用到状态机的日志索引值
 
-	//volatile state on leader
-	nextIndex  []int //对每一个服务器，需要发送给它的下一个日志条目索引值，initial 领导人最后一次索引加一
+	//volatile state on leaders
+	nextIndex  []int //对每一个服务器，需要发送给它的下一个日志条目索引值，initial 为leader的最后一次log索引加一
 	matchIndex []int //对每一个服务器，已经复制的日志的最高索引值
 
 }
 
 // return currentTerm and whether this server
 // believes it is the leader.
+
+/*
+返回当前任期以及这个服务器是否认为自己是一个leader
+*/
 func (rf *Raft) GetState() (int, bool) {
 
 	var term int
@@ -98,6 +108,10 @@ func (rf *Raft) GetState() (int, bool) {
 // where it can later be retrieved after a crash and restart.
 // see paper's Figure 2 for a description of what should be persistent.
 //
+/*
+将Raft的持久状态保存到稳定的存储中，以便在崩溃和重新启动后检索。
+有关什么应该是持久性的描述，请参见本文的图2。
+*/
 func (rf *Raft) persist() {
 	// Your code here.
 	// Example:
@@ -130,7 +144,7 @@ func (rf *Raft) readPersist(data []byte) {
 
 	r := bytes.NewBuffer(data)
 	d := gob.NewDecoder(r)
-	d.Decode(&rf.currentTerm)
+	_ = d.Decode(&rf.currentTerm)
 	d.Decode(&rf.votedFor)
 	d.Decode(&rf.log)
 }
@@ -313,7 +327,13 @@ func (rf *Raft) sendAppendEntries(server int, args AppendEntriesArgs, reply *App
 // term. the third return value is true if this server believes it is
 // the leader.
 //
-func (rf *Raft) Start(command interface{}) (int, int, bool) {
+
+/*
+使用Raft的服务(例如k/v服务器)希望启动协议，将下一个命令附加到Raft日志中。如果该服务器不是leader，则返回false。否则启动协议并立即返回。
+没有人能保证这个命令会被放在木筏上，因为领导者可能会在选举中失败或失败。(##)
+第一个返回值是命令提交时将出现的索引。第二个返回值是当前项。如果此服务器认为自己是leader，则第三个返回值为true。(##)
+*/
+func (rf *Raft) Start(command interface{}) (int, int, bool) { //## (command interface{}) 是什么
 	/*index := -1
 	term := -1
 	isLeader := true
@@ -330,14 +350,14 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	return index, term, isLeader
 }
 func (rf *Raft) broadcastAppendEntries() {
-	rf.mu.Lock()
+	rf.mu.Lock() // ## 为什么需要加锁
 	defer rf.mu.Unlock()
 
 	for i := range rf.peers {
 		if i != rf.me && rf.state == "Leader" {
 			var args AppendEntriesArgs
 			args.Term = rf.currentTerm
-			go func(i int, args AppendEntriesArgs) {
+			go func(i int, args AppendEntriesArgs) { //##
 				var reply AppendEntriesReply
 				rf.sendAppendEntries(i, args, &reply)
 			}(i, args)
@@ -383,7 +403,17 @@ func (rf *Raft) Kill() {
 // Make() must return quickly, so it should start goroutines
 // for any long-running work.
 //
-func Make(peers []*labrpc.ClientEnd, me int,
+
+/*
+	Make的作用：创建一个Raft服务器。
+所有服务器的端口号都在peers[]中。本服务器的端口号是peers[me]。所有服务器的peer数组都有相同的顺序。persister 是服务器存储 persistent 状态的地方（##），
+并且初始化的时候存储最近被保存的状态，如果有的话（##）。
+applyCh是测试人员或服务期望Raft发送ApplyMsg消息的通道。
+Make()必须快速返回，因此它应该为任何长时间运行的工作启动goroutines(##)。
+
+*/
+//## 当一个服务器一段时间没收到心跳消息后，便发起一次选举，根据不同的状态产生不同的操作 这个操作在哪里？
+func Make(peers []*labrpc.ClientEnd, me int, //## []*是什么意思   ClientEnd是什么？ Persister是什么？
 	persister *Persister, applyCh chan ApplyMsg) *Raft {
 	rf := &Raft{}
 	rf.peers = peers
@@ -391,21 +421,22 @@ func Make(peers []*labrpc.ClientEnd, me int,
 	rf.me = me
 
 	// Your initialization code here.
+	// 期初应该都是 Follower
 	rf.state = "Follower"
 	rf.votedFor = -1
-	rf.log = append(rf.log, LogEntry{Term: 0})
+	rf.log = append(rf.log, LogEntry{Term: 0}) //##
 	rf.currentTerm = 0
-	rf.chanHeartbeat = make(chan bool, 100)
+	rf.chanHeartbeat = make(chan bool, 100) //##
 	rf.chanGrantVote = make(chan bool, 100)
 	rf.chanIsLeader = make(chan bool, 100)
 
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
-	go func() {
+	go func() { //## go func是什么意思  开一个新的gr跑下面这段程序
 		for {
 			if rf.state == "Follower" {
 				select {
-				case <-rf.chanHeartbeat:
+				case <-rf.chanHeartbeat: // ## <-是什么意思
 				case <-rf.chanGrantVote:
 				case <-time.After(time.Duration(rand.Int63()%150+300) * time.Millisecond):
 					rf.state = "Candidate"

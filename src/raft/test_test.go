@@ -17,19 +17,20 @@ import "sync"
 
 // The tester generously allows solutions to complete elections in one second
 // (much more than the paper's range of timeouts).
+// 测试人员慷慨地允许解决方案在一个时间内完成选举(远远超过报纸的超时范围)。 ?
 const RaftElectionTimeout = 1000 * time.Millisecond
 
 func TestInitialElection(t *testing.T) {
 	servers := 3
 	cfg := make_config(t, servers, false)
-	defer cfg.cleanup()
+	defer cfg.cleanup() // 用完处理，放在这里防止用户后面忘记
 
 	fmt.Printf("Test: initial election ...\n")
 
 	// is a leader elected?
 	cfg.checkOneLeader()
 
-	// does the leader+term stay the same there is no failure?
+	// does the leader+term stay the same there is no failure?  ##
 	term1 := cfg.checkTerms()
 	time.Sleep(2 * RaftElectionTimeout)
 	term2 := cfg.checkTerms()

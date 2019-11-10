@@ -257,14 +257,17 @@ func (cfg *config) setlongreordering(longrel bool) {
 
 // check that there's exactly one leader.
 // try a few times in case re-elections are needed.
+/*
+检查一下是否只有一个leader。尝试几次，以防需要重新选举。 ##
+*/
 func (cfg *config) checkOneLeader() int {
 	for iters := 0; iters < 10; iters++ {
-		time.Sleep(500 * time.Millisecond)
-		leaders := make(map[int][]int)
-		for i := 0; i < cfg.n; i++ {
-			if cfg.connected[i] {
-				if t, leader := cfg.rafts[i].GetState(); leader {
-					leaders[t] = append(leaders[t], i)
+		time.Sleep(500 * time.Millisecond) // ## goroutine 是什么？
+		leaders := make(map[int][]int)     //##
+		for i := 0; i < cfg.n; i++ {       // ## n是什么？
+			if cfg.connected[i] { // connected是什么
+				if t, leader := cfg.rafts[i].GetState(); leader { // 找到了一个leader
+					leaders[t] = append(leaders[t], i) //##
 				}
 			}
 		}
@@ -275,7 +278,7 @@ func (cfg *config) checkOneLeader() int {
 				cfg.t.Fatalf("term %d has %d (>1) leaders", t, len(leaders))
 			}
 			if t > lastTermWithLeader {
-				lastTermWithLeader = t
+				lastTermWithLeader = t // ## 这是啥意思？
 			}
 		}
 
