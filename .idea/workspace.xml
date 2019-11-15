@@ -1,101 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="558ac743-39b1-4d9c-ab46-81873a9bc231" name="Default" comment="zqy学长版本的">
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+    <list default="true" id="558ac743-39b1-4d9c-ab46-81873a9bc231" name="Default" comment="zqy学长的提交版本（可以通过）">
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/diskv/client.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/diskv/common.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/diskv/server.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/diskv/test_test.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/kvpaxos/client.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/kvpaxos/common.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/kvpaxos/server.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/kvpaxos/test_test.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/kvraft/client.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/kvraft/common.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/kvraft/config.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/kvraft/server.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/kvraft/test_test.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/labrpc/labrpc.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/labrpc/labrpc.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lockservice/client.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lockservice/common.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lockservice/server.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lockservice/test_test.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/diskvd" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/diskvd.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/ii.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/lockc.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/lockd.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/mr-challenge.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/mr-testout.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/pbc.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/pbd.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/pg-being_ernest.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/pg-dorian_gray.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/pg-dracula.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/pg-emma.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/pg-frankenstein.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/pg-great_expectations.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/pg-grimm.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/pg-huckleberry_finn.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/pg-les_miserables.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/pg-metamorphosis.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/pg-moby_dick.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/pg-sherlock_holmes.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/pg-tale_of_two_cities.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/pg-tom_sawyer.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/pg-ulysses.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/pg-war_and_peace.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/test-ii.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/test-mr.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/test-wc.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/viewd.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/wc.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mapreduce/824-mrinput-0.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mapreduce/common.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mapreduce/common_map.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mapreduce/common_reduce.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mapreduce/common_rpc.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mapreduce/master.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mapreduce/master_rpc.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mapreduce/master_splitmerge.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mapreduce/readme.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mapreduce/schedule.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mapreduce/test_test.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/mapreduce/worker.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/paxos-shardkv/client.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/paxos-shardkv/common.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/paxos-shardkv/server.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/paxos-shardkv/test_test.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/paxos-shardmaster/client.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/paxos-shardmaster/common.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/paxos-shardmaster/server.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/paxos-shardmaster/test_test.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/paxos/paxos.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/paxos/test_test.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pbservice/client.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pbservice/common.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pbservice/server.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/pbservice/test_test.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/raft/config.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/raft/config.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/raft/raft.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/raft/raft.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/raft/test_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/src/raft/test_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/shardkv/client.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/shardkv/common.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/shardkv/config.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/shardkv/server.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/shardkv/test_test.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/shardmaster/client.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/shardmaster/common.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/shardmaster/config.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/shardmaster/server.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/shardmaster/test_test.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/viewservice/client.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/viewservice/common.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/viewservice/server.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/viewservice/test_test.go" beforeDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -134,7 +43,7 @@
     <property name="configurable.Project.GOPATH.is.expanded" value="true" />
     <property name="go.import.settings.migrated" value="true" />
     <property name="go.sdk.automatically.set" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/src" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="com.goide.configuration.GoLibrariesConfigurableProvider" />
   </component>
   <component name="RecentsManager">
