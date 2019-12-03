@@ -172,6 +172,10 @@ type RequestVoteReply struct {
 	Term        int  //当前的任期号
 	VoteGranted bool //候选人赢得了这个服务器的选票时为真
 }
+
+/*
+AppendEntries 所传递的数据
+*/
 type AppendEntriesArgs struct {
 	Term         int        //领导人的任期号
 	LeaderId     int        //领导人的id，以便于跟随者重新定向请求
@@ -180,9 +184,13 @@ type AppendEntriesArgs struct {
 	Entries      []LogEntry //需要存储当前的日志条目
 	LeaderCommit int        //领导人已经提交的日志索引值
 }
+
+/*
+AppendEntries 的响应
+*/
 type AppendEntriesReply struct {
-	Term        int  //当前的任期号，用于领导人去更新自己
-	Success     bool //跟随者包含了匹配上prevLogIndex和prevLogTerm的日志时候为真
+	Term        int  //当前的任期号，领导人用其去更新自己
+	Success     bool //跟随者是否包含了匹配上 prevLogIndex 和 prevLogTerm 的日志时候
 	CommitIndex int  //提交的日志索引
 }
 
@@ -230,6 +238,8 @@ func (rf *Raft) RequestVote(args RequestVoteArgs, reply *RequestVoteReply) {
 	}
 	return
 }
+
+// Follwer 节点如何处理 AppendEntry 的 RPC 请求。
 func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply) {
 	rf.mu.Lock()
 	defer rf.mu.Unlock() // defer的先后次序
@@ -363,7 +373,7 @@ func (rf *Raft) handleAppendEntriesReply(server int, args AppendEntriesArgs, rep
 	}
 }
 func (rf *Raft) sendAppendEntries(server int, args AppendEntriesArgs, reply *AppendEntriesReply) bool {
-	ok := rf.peers[server].Call("Raft.AppendEntries", args, reply)
+	ok := rf.SendAppendEntryToFollower(server, args, reply)
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	if ok {
@@ -375,6 +385,14 @@ func (rf *Raft) sendAppendEntries(server int, args AppendEntriesArgs, reply *App
 		}
 		rf.handleAppendEntriesReply(server, args, reply)
 	}
+	return ok
+}
+
+//
+// send appendetries to a follower
+//
+func (rf *Raft) SendAppendEntryToFollower(server int, args AppendEntriesArgs, reply *AppendEntriesReply) bool {
+	ok := rf.peers[server].Call("Raft.AppendEntries", args, reply)
 	return ok
 }
 
@@ -404,6 +422,11 @@ func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	}
 	return index, term, isLeader
 }
+
+/*
+如果存在一个N，使得 N > commitIndex, a majority of matchIndex[i] ≥ N, and log[N].Term == currentTerm
+	讲 commitIndex设置为N
+*/
 func (rf *Raft) broadcastAppendEntries() {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
@@ -425,6 +448,7 @@ func (rf *Raft) broadcastAppendEntries() {
 		rf.chanCommit <- true
 	}
 
+	// 向所有其他节点发送  AppendEntries 包
 	for i := range rf.peers {
 		if i != rf.me && rf.state == "Leader" {
 			var args AppendEntriesArgs
@@ -435,13 +459,16 @@ func (rf *Raft) broadcastAppendEntries() {
 			args.Entries = make([]LogEntry, len(rf.log[args.PrevLogIndex+1:]))
 			copy(args.Entries, rf.log[args.PrevLogIndex+1:])
 			args.LeaderCommit = rf.commitIndex
+
 			go func(i int, args AppendEntriesArgs) {
 				var reply AppendEntriesReply
 				rf.sendAppendEntries(i, args, &reply)
 			}(i, args)
+
 		}
 	}
 }
+
 func (rf *Raft) broadcastRequestVote() {
 	var args RequestVoteArgs
 	rf.mu.Lock()
