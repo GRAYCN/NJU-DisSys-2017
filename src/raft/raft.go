@@ -46,8 +46,9 @@ type ApplyMsg struct {
 }
 
 type LogEntry struct {
-	Index int //日志索引
-	Term  int //日志创建的任期号
+	Index   int         //日志索引
+	Term    int         //日志创建的任期号
+	Command interface{} //日志的执行操作
 }
 
 //
@@ -71,6 +72,9 @@ type Raft struct {
 	chanHeartbeat chan bool //心跳机制，用来建立权限联系以及阻止其他选举的产生
 	chanGrantVote chan bool //判断该服务器是否投过票
 	chanIsLeader  chan bool //判断是否成为了领导人
+
+	chanCommit chan bool     //判断是否提交了日志
+	chanApply  chan ApplyMsg //应用信息
 
 	//persistent state on all servers:
 	currentTerm int        //服务器看到的最新任期(第一次启动时初始化为0，单调递增)。
@@ -169,23 +173,35 @@ type RequestVoteReply struct {
 	VoteGranted bool //候选人赢得了这个服务器的选票时为真
 }
 type AppendEntriesArgs struct {
-	Term int
+	Term         int        //领导人的任期号
+	LeaderId     int        //领导人的id，以便于跟随者重新定向请求
+	PrevLogTerm  int        //之前的日志的领导人任期号
+	PrevLogIndex int        //新的日志条目紧随之前的日志索引值
+	Entries      []LogEntry //需要存储当前的日志条目
+	LeaderCommit int        //领导人已经提交的日志索引值
 }
 type AppendEntriesReply struct {
-	Term int
+	Term        int  //当前的任期号，用于领导人去更新自己
+	Success     bool //跟随者包含了匹配上prevLogIndex和prevLogTerm的日志时候为真
+	CommitIndex int  //提交的日志索引
 }
 
 //
 // example RequestVote RPC handler.
 //
+/*
+## 这就是RequestVote RPC的句柄
+该函数是raft节点在收到投票请求时的处理函数。
+
+*/
 func (rf *Raft) RequestVote(args RequestVoteArgs, reply *RequestVoteReply) {
 	// Your code here.
 
-	rf.mu.Lock()
+	rf.mu.Lock() // 对当前节点上锁，即一个节点只能处理一份投票信息
 	defer rf.mu.Unlock()
-	defer rf.persist()
+	defer rf.persist() // 需要将投票信息持久化 ##
 
-	reply.VoteGranted = false
+	reply.VoteGranted = false // 候选人是否赢得了选票
 
 	mayGrantVote := false
 	term := rf.log[len(rf.log)-1].Term
@@ -206,11 +222,11 @@ func (rf *Raft) RequestVote(args RequestVoteArgs, reply *RequestVoteReply) {
 	}
 	reply.Term = rf.currentTerm
 
-	if (rf.votedFor == -1 || rf.votedFor == args.CandidateId) && mayGrantVote {
-		rf.chanGrantVote <- true
-		rf.state = "Follower"
-		reply.VoteGranted = true
-		rf.votedFor = args.CandidateId
+	if (rf.votedFor == -1 || rf.votedFor == args.CandidateId) && mayGrantVote { // ##
+		rf.chanGrantVote <- true       //判断服务器是否投过票
+		rf.state = "Follower"          // 投票后这个raft节点成为Follower
+		reply.VoteGranted = true       // 候选人赢得了这个服务器的选票
+		rf.votedFor = args.CandidateId // 这个节点的票投给了args.CandidateId
 	}
 	return
 }
@@ -230,6 +246,43 @@ func (rf *Raft) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply)
 		rf.votedFor = -1
 	}
 	reply.Term = args.Term
+
+	if args.PrevLogIndex > rf.log[len(rf.log)-1].Index {
+		reply.CommitIndex = rf.log[len(rf.log)-1].Index + 1
+		return
+	}
+
+	if args.PrevLogIndex >= 0 {
+		term := rf.log[args.PrevLogIndex].Term
+		if args.PrevLogTerm != term {
+			for reply.CommitIndex = args.PrevLogIndex - 1; reply.CommitIndex >= 0; reply.CommitIndex-- {
+				if rf.log[reply.CommitIndex].Term != term {
+					break
+				}
+			}
+			reply.CommitIndex++
+			return
+		} else {
+			//If an existing entry conflicts with a new one (same index
+			//but different terms), delete the existing entry and all that
+			//follow it
+			//Append any new entries not already in the log
+			rf.log = rf.log[:args.PrevLogIndex+1]
+			rf.log = append(rf.log, args.Entries...)
+			reply.Success = true
+			reply.CommitIndex = rf.log[len(rf.log)-1].Index + 1
+		}
+	}
+	//If leaderCommit > commitIndex, set commitIndex =min(leaderCommit, index of last new entry)
+	if args.LeaderCommit > rf.commitIndex {
+		last := rf.log[len(rf.log)-1].Index
+		if args.LeaderCommit > last {
+			rf.commitIndex = last
+		} else {
+			rf.commitIndex = args.LeaderCommit
+		}
+		rf.chanCommit <- true
+	}
 	return
 }
 
@@ -269,6 +322,10 @@ func (rf *Raft) handleRequestReply(reply *RequestVoteReply) {
 		}
 	}
 }
+
+/*
+	用于调用RV RPC。
+*/
 func (rf *Raft) sendRequestVote(server int, args RequestVoteArgs, reply *RequestVoteReply) bool {
 	ok := rf.peers[server].Call("Raft.RequestVote", args, reply)
 	//return ok
@@ -277,24 +334,32 @@ func (rf *Raft) sendRequestVote(server int, args RequestVoteArgs, reply *Request
 	defer rf.mu.Unlock()
 
 	if ok {
+		term := rf.currentTerm
 		if rf.state != "Candidate" {
 			return ok
 		}
-		if args.Term != rf.currentTerm {
+		if args.Term != term {
 			return ok
 		}
 		rf.handleRequestReply(reply)
-		return ok
 	}
 	return ok
 }
-func (rf *Raft) handleAppendEntriesReply(reply *AppendEntriesReply) {
+func (rf *Raft) handleAppendEntriesReply(server int, args AppendEntriesArgs, reply *AppendEntriesReply) {
 	if reply.Term > rf.currentTerm {
 		rf.currentTerm = reply.Term
 		rf.state = "Follower"
 		rf.votedFor = -1
 		rf.persist()
 		return
+	}
+	if reply.Success {
+		if len(args.Entries) > 0 {
+			rf.nextIndex[server] = args.Entries[len(args.Entries)-1].Index + 1
+			rf.matchIndex[server] = rf.nextIndex[server] - 1
+		}
+	} else {
+		rf.nextIndex[server] = reply.CommitIndex
 	}
 }
 func (rf *Raft) sendAppendEntries(server int, args AppendEntriesArgs, reply *AppendEntriesReply) bool {
@@ -308,8 +373,7 @@ func (rf *Raft) sendAppendEntries(server int, args AppendEntriesArgs, reply *App
 		if args.Term != rf.currentTerm {
 			return ok
 		}
-		rf.handleAppendEntriesReply(reply)
-		return ok
+		rf.handleAppendEntriesReply(server, args, reply)
 	}
 	return ok
 }
@@ -327,36 +391,50 @@ func (rf *Raft) sendAppendEntries(server int, args AppendEntriesArgs, reply *App
 // term. the third return value is true if this server believes it is
 // the leader.
 //
-
-/*
-使用Raft的服务器(例如k/v服务器)希望启动协议，将下一个命令附加到Raft日志中。如果该服务器不是leader，则返回false。否则启动协议并立即返回。
-没有人能保证这个命令会被放在Raft上，因为领导者可能会在选举中失败或失败。(##)
-第一个返回值是命令提交时将出现的索引。第二个返回值是当前项。如果此服务器认为自己是leader，则第三个返回值为true。(##)
-*/
-func (rf *Raft) Start(command interface{}) (int, int, bool) { // ##这里并没有用到command
-	/*index := -1
-	term := -1
-	isLeader := true
-
-
-	return index, term, isLeader*/
-
+func (rf *Raft) Start(command interface{}) (int, int, bool) {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
 	index := -1
 	term := rf.currentTerm
-	isLeader := (rf.state == "Leader")
-
+	isLeader := rf.state == "Leader"
+	if isLeader {
+		index = rf.log[len(rf.log)-1].Index + 1
+		rf.log = append(rf.log, LogEntry{Term: term, Command: command, Index: index})
+		rf.persist()
+	}
 	return index, term, isLeader
 }
 func (rf *Raft) broadcastAppendEntries() {
 	rf.mu.Lock()
 	defer rf.mu.Unlock()
+	N := rf.commitIndex
+	//If there exists an N such that N > commitIndex, a majority of matchIndex[i] ≥ N, and log[N].term == currentTerm: set commitIndex = N
+	for i := rf.commitIndex + 1; i <= rf.log[len(rf.log)-1].Index; i++ {
+		num := 1
+		for j := range rf.peers {
+			if j != rf.me && rf.matchIndex[j] >= i && rf.log[i].Term == rf.currentTerm {
+				num++
+			}
+		}
+		if num > len(rf.peers)/2 {
+			N = i
+		}
+	}
+	if N != rf.commitIndex {
+		rf.commitIndex = N
+		rf.chanCommit <- true
+	}
 
 	for i := range rf.peers {
 		if i != rf.me && rf.state == "Leader" {
 			var args AppendEntriesArgs
 			args.Term = rf.currentTerm
+			args.LeaderId = rf.me
+			args.PrevLogIndex = rf.nextIndex[i] - 1
+			args.PrevLogTerm = rf.log[args.PrevLogIndex].Term
+			args.Entries = make([]LogEntry, len(rf.log[args.PrevLogIndex+1:]))
+			copy(args.Entries, rf.log[args.PrevLogIndex+1:])
+			args.LeaderCommit = rf.commitIndex
 			go func(i int, args AppendEntriesArgs) {
 				var reply AppendEntriesReply
 				rf.sendAppendEntries(i, args, &reply)
@@ -369,7 +447,9 @@ func (rf *Raft) broadcastRequestVote() {
 	rf.mu.Lock()
 	args.Term = rf.currentTerm
 	args.CandidateId = rf.me
-	defer rf.mu.Unlock()
+	args.LastLogTerm = rf.log[len(rf.log)-1].Term
+	args.LastLogIndex = rf.log[len(rf.log)-1].Index
+	rf.mu.Unlock()
 
 	for i := range rf.peers {
 		if i != rf.me && rf.state == "Candidate" {
@@ -425,13 +505,16 @@ func Make(peers []*labrpc.ClientEnd, me int, // []*是什么意思 ClientEnd指�
 	rf.votedFor = -1
 	rf.log = append(rf.log, LogEntry{Term: 0})
 	rf.currentTerm = 0
+	rf.chanCommit = make(chan bool, 100)
 	rf.chanHeartbeat = make(chan bool, 100)
 	rf.chanGrantVote = make(chan bool, 100)
 	rf.chanIsLeader = make(chan bool, 100)
+	rf.chanApply = applyCh
 
 	// initialize from state persisted before a crash
 	rf.readPersist(persister.ReadRaftState())
-	go func() { //##
+
+	go func() {
 		for {
 			/*
 				处于 Follower 状态的节点在一个随机的超时时间 (称之为 Election timeout，注意每次都要随机选择一个超时时间，这个超时时间通常为 150-300 毫秒，
@@ -445,9 +528,6 @@ func Make(peers []*labrpc.ClientEnd, me int, // []*是什么意思 ClientEnd指�
 					rf.state = "Candidate"
 				}
 			}
-			/*
-
-			 */
 			if rf.state == "Leader" {
 				rf.broadcastAppendEntries()
 				time.Sleep(50 * time.Millisecond)
@@ -472,8 +552,30 @@ func Make(peers []*labrpc.ClientEnd, me int, // []*是什么意思 ClientEnd指�
 				case <-rf.chanIsLeader:
 					rf.mu.Lock()
 					rf.state = "Leader"
+					rf.nextIndex = make([]int, len(rf.peers))
+					rf.matchIndex = make([]int, len(rf.peers))
+					for i := range rf.peers {
+						rf.nextIndex[i] = rf.log[len(rf.log)-1].Index + 1
+						rf.matchIndex[i] = 0
+					}
 					rf.mu.Unlock()
 				}
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			select {
+			case <-rf.chanCommit:
+				rf.mu.Lock()
+				commitIndex := rf.commitIndex
+				for i := rf.lastApplied + 1; i <= commitIndex; i++ {
+					msg := ApplyMsg{Index: i, Command: rf.log[i].Command}
+					applyCh <- msg
+					rf.lastApplied = i
+				}
+				rf.mu.Unlock()
 			}
 		}
 	}()
